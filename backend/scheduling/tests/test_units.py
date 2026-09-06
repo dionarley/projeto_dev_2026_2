@@ -1,6 +1,6 @@
 """Testes unitários — lógica isolada (serializers e anti-spam), sem HTTP.
 
-Cobrem as unidades que os testes de integração (tests.py) exercitam só
+Cobrem as unidades que os testes de integração (test_api.py) exercitam só
 "pedaço por pedaço": validações de campos e a política de rate limit.
 """
 
@@ -10,7 +10,7 @@ from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.utils import timezone
 
 from scheduling.middleware import RateLimitMiddleware
-from scheduling.models import Option
+from scheduling.models import Option, Registration
 from scheduling.serializers import (
     OptionSerializer,
     RegistrationSerializer,
@@ -53,6 +53,20 @@ class OptionSerializerTests(TestCase):
         self.assertIn("duration_min", too_short.errors)
         self.assertIn("duration_min", too_long.errors)
 
+    def test_registrations_count_comes_from_related_rows(self):
+        option = Option.objects.create(
+            title="Ortopedia", price_cents=18000, duration_min=30, active=True
+        )
+        Registration.objects.create(
+            name="Maria",
+            email="maria@exemplo.com",
+            option=option,
+            scheduled_date=timezone.localdate(),
+            scheduled_time="09:30",
+        )
+        serializer = OptionSerializer(option)
+        self.assertEqual(serializer.data["registrations"], 1)
+
 
 class RegistrationSerializerTests(TestCase):
     def setUp(self):
@@ -80,6 +94,18 @@ class RegistrationSerializerTests(TestCase):
         serializer = RegistrationSerializer(data=self._data())
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(serializer.validated_data["email"], "maria@exemplo.com")
+
+    def test_option_title_is_read_only_and_reflected(self):
+        registration = Registration.objects.create(
+            name="Maria da Silva",
+            email="maria@exemplo.com",
+            option=self.active,
+            scheduled_date=self.tomorrow,
+            scheduled_time="09:30",
+        )
+        serializer = RegistrationSerializer(registration)
+        self.assertEqual(serializer.data["option_title"], "Clínica Geral")
+        self.assertEqual(serializer.data["option_id"], self.active.id)
 
     def test_normalizes_email_to_lowercase(self):
         serializer = RegistrationSerializer(data=self._data(email="  Maria@Exemplo.COM "))

@@ -7,7 +7,7 @@ from django.http import FileResponse, HttpResponse, JsonResponse
 
 
 def frontend(request):
-    """Servir o SPA (app/dist) nas rotas que não são de API/static/admin.
+    """Servir o SPA (frontend/dist) nas rotas que não são de API/static/admin.
 
     Sem o frontend compilado, devolve uma dica amigável em vez de quebrar.
     """
@@ -22,7 +22,7 @@ def frontend(request):
         json.dumps(
             {
                 "error": "Frontend não compilado.",
-                "fix": "Execute `pnpm build` dentro de app/ (ou use o servidor de dev com o proxy do Vite).",
+                "fix": "Execute `pnpm build` dentro de frontend/ (ou use o servidor de dev com o proxy do Vite).",
             },
             ensure_ascii=False,
         ),

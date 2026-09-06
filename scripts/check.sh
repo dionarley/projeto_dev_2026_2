@@ -18,6 +18,8 @@ fi
 echo "==> 1/4 Testes do backend (unitários + integração)"
 (
   cd "$ROOT/backend"
+  "${PY[@]}" manage.py check
+  "${PY[@]}" manage.py makemigrations --check --dry-run
   "${PY[@]}" manage.py test
 )
 

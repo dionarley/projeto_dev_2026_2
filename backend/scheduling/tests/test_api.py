@@ -90,6 +90,36 @@ class PublicFlowTests(APITestCase):
         self.assertEqual(titles, {"Clínica Geral"})
         self.assertNotIn("Pediatria (teleducação)", titles)
 
+    def test_registration_missing_email_returns_400_with_errors(self):
+        payload = {
+            "name": "Maria da Silva",
+            "option_id": self.clinica.id,
+            "scheduled_date": str(timezone.localdate()),
+            "scheduled_time": "09:30",
+        }
+        response = self.client.post("/api/registrations", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data["errors"])
+
+    def test_registration_same_window_but_different_email_is_allowed(self):
+        payload = {
+            "name": "Ana Souza",
+            "email": "ana@exemplo.com",
+            "option_id": self.clinica.id,
+            "scheduled_date": str(timezone.localdate()),
+            "scheduled_time": "08:00",
+        }
+        first = self.client.post("/api/registrations", payload, format="json")
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        second = self.client.post(
+            "/api/registrations",
+            {**payload, "email": "outra@exemplo.com"},
+            format="json",
+        )
+        self.assertEqual(second.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Registration.objects.count(), 2)
+
 
 class AdminFlowTests(APITestCase):
     def setUp(self):
@@ -206,3 +236,71 @@ class AdminFlowTests(APITestCase):
         self.client.post("/api/logout")
         response = self.client.get("/api/me")
         self.assertIn(response.status_code, (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN))
+
+    def test_set_status_rejects_invalid_value(self):
+        self._login()
+        response = self.client.patch(
+            f"/api/admin/registrations/{self.registration.id}/status",
+            {"status": "lixo"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_set_status_returns_400_when_unchanged(self):
+        self._login()
+        response = self.client.patch(
+            f"/api/admin/registrations/{self.registration.id}/status",
+            {"status": "pendente"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_set_status_unknown_registration_returns_404(self):
+        self._login()
+        response = self.client.patch(
+            "/api/admin/registrations/99999/status",
+            {"status": "confirmado"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_unknown_option_returns_404(self):
+        self._login()
+        response = self.client.put(
+            "/api/admin/options/99999",
+            {"title": "X"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_admin_options_includes_inactive(self):
+        self._login()
+        Option.objects.create(
+            title="Pediatria (teleducação)",
+            price_cents=15000,
+            duration_min=25,
+            active=False,
+        )
+        response = self.client.get("/api/admin/options")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = {item["title"] for item in response.data}
+        self.assertIn(self.clinica.title, titles)
+        self.assertIn("Pediatria (teleducação)", titles)
+
+    def test_toggle_option_active_status_via_partial_update(self):
+        self._login()
+        inactive = Option.objects.create(
+            title="Pediatria (teleducação)",
+            price_cents=15000,
+            duration_min=25,
+            active=False,
+        )
+        response = self.client.put(
+            f"/api/admin/options/{inactive.id}",
+            {"active": True},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIs(response.data["active"], True)
+        public = self.client.get("/api/options")
+        self.assertIn(inactive.title, [o["title"] for o in public.data])

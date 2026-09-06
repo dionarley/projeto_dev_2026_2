@@ -14,8 +14,8 @@ Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
 ## Estado atual
 
 - [x] PRs por-branch (#5, #6, #7) fechadas — consolidação é única.
-- [x] Testes de integração do contrato (11) portados para Django `TestCase`.
-- [x] Testes unitários (15) de serializers + anti-spam (`scheduling/test_units.py`).
+- [x] Testes de integração do contrato portados para Django `TestCase` (`scheduling/tests/test_api.py`).
+- [x] Testes unitários de serializers, usuário e anti-spam (`scheduling/tests/test_units.py`, `accounts/tests.py`).
 - [x] Scripts de automação: `scripts/check.sh` (gate CI local), `scripts/dev.sh`, `scripts/seed.sh`.
 - [x] Gate completo verde (testes + `tsc` + build + `docker compose config`).
 - [x] Branches `backend-django` e `docker` mergeadas em `development`.
