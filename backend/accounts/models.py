@@ -31,15 +31,31 @@ class EmailUserManager(BaseUserManager):
 
 
 class User(AbstractUser):
-    """Usuário customizado com login por e-mail (exigido pelo contrato da API)."""
+    """Usuário customizado com login por e-mail (exigido pelo contrato da API).
+
+    `role` distingue as equipes: "admin" (superusuário no Django admin e todas
+    as operações) vs "suporte" (painel de operação — devoluções/opções — mas
+    bloqueado no /admin/ e na gestão de usuários).
+    """
+
+    class Role(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        SUPORTE = "suporte", "Suporte"
 
     username = None
     email = models.EmailField("e-mail", unique=True)
     name = models.CharField("nome", max_length=150, blank=True)
+    role = models.CharField(
+        "equipe", max_length=12, choices=Role.choices, default=Role.ADMIN
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
     objects = EmailUserManager()
+
+    @property
+    def is_support(self) -> bool:
+        return self.role == self.Role.SUPORTE
 
     def __str__(self) -> str:
         return self.email

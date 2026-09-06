@@ -326,7 +326,19 @@ function RegistrationsTab({ toast }: { toast: (k: "ok" | "err", s: string) => vo
         r.created_at,
       ]),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const csv = rows
+      .map((r) =>
+        r
+          .map((c) => {
+            let s = String(c);
+            // CSV injection: evita que um valor iniciado com = + - @ (ou tab/CR)
+            // seja interpretado como fórmula pelo Excel/Sheets.
+            if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+            return `"${s.replace(/"/g, '""')}"`;
+          })
+          .join(";"),
+      )
+      .join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

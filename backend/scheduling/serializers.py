@@ -1,6 +1,14 @@
 from rest_framework import serializers
 
 from .models import Option, Registration
+from .validators import (
+    MAX_DESCRIPTION,
+    MAX_EMAIL,
+    MAX_NAME,
+    MAX_TITLE,
+    PHONE_RE,
+    strip_control_chars,
+)
 
 
 def flatten_errors(errors: dict) -> dict:
@@ -34,9 +42,19 @@ class OptionSerializer(serializers.ModelSerializer):
         ]
 
     def validate_title(self, value: str) -> str:
-        value = value.strip()
+        value = strip_control_chars(value)
         if len(value) < 3:
             raise serializers.ValidationError("O título deve ter pelo menos 3 caracteres.")
+        if len(value) > MAX_TITLE:
+            raise serializers.ValidationError(f"O título deve ter no máximo {MAX_TITLE} caracteres.")
+        return value
+
+    def validate_description(self, value: str) -> str:
+        value = strip_control_chars(value)
+        if len(value) > MAX_DESCRIPTION:
+            raise serializers.ValidationError(
+                f"A descrição deve ter no máximo {MAX_DESCRIPTION} caracteres."
+            )
         return value
 
     def validate_price_cents(self, value: int) -> int:
@@ -73,14 +91,19 @@ class RegistrationSerializer(serializers.ModelSerializer):
         ]
 
     def validate_name(self, value: str) -> str:
-        value = value.strip()
+        value = strip_control_chars(value)
         if len(value) < 3:
             raise serializers.ValidationError("Informe seu nome completo (mínimo 3 caracteres).")
+        if len(value) > MAX_NAME:
+            raise serializers.ValidationError(f"O nome deve ter no máximo {MAX_NAME} caracteres.")
         return value
 
     def validate_email(self, value: str) -> str:
-        value = value.strip().lower()
-        if "@" not in value or "." not in value.split("@")[-1]:
+        value = strip_control_chars(value).strip().lower()
+        if len(value) > MAX_EMAIL:
+            raise serializers.ValidationError(f"O e-mail deve ter no máximo {MAX_EMAIL} caracteres.")
+        email_part = value.split("@")[-1]
+        if "@" not in value or "." not in email_part or " " in value:
             raise serializers.ValidationError("Informe um e-mail válido.")
         return value
 
@@ -90,9 +113,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone(self, value: str) -> str:
-        value = value.strip()
-        if value and len(value) < 8:
-            raise serializers.ValidationError("Informe um telefone válido.")
+        value = strip_control_chars(value)
+        if value and not PHONE_RE.match(value):
+            raise serializers.ValidationError(
+                "Informe um telefone válido (dígitos, +, espaço, ( ), . e -)."
+            )
         return value
 
     def validate_scheduled_date(self, value) -> object:

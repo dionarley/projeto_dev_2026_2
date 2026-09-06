@@ -157,8 +157,8 @@ class RateLimitMiddlewareTests(SimpleTestCase):
 
         self.middleware = RateLimitMiddleware(get_response)
 
-    def _post(self):
-        request = self.factory.post("/api/registrations")
+    def _post(self, path="/api/registrations", email=None):
+        request = self.factory.post(path)
         request.META["REMOTE_ADDR"] = "203.0.113.10"
         return request
 
@@ -178,11 +178,19 @@ class RateLimitMiddlewareTests(SimpleTestCase):
                 self.assertEqual(self.middleware(request).status_code, 200)
 
     def test_login_endpoint_is_also_limited(self):
-        for _ in range(5):
-            request = self.factory.post("/api/login")
+        from scheduling.middleware import IP_LIMITS
+
+        limit = IP_LIMITS["/api/login"][0]
+        # E-mails distintos: testa o teto por IP (30/min), não o por conta.
+        for i in range(limit):
+            request = self.factory.post(
+                "/api/login",
+                data={"email": f"usuario{i}@exemplo.com"},
+                content_type="application/json",
+            )
             request.META["REMOTE_ADDR"] = "203.0.113.20"
             self.assertEqual(self.middleware(request).status_code, 200)
 
-        request = self.factory.post("/api/login")
+        request = self.factory.post("/api/login", data={"email": "ultimo@exemplo.com"}, content_type="application/json")
         request.META["REMOTE_ADDR"] = "203.0.113.20"
         self.assertEqual(self.middleware(request).status_code, 429)

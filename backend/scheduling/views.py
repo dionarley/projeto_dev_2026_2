@@ -23,6 +23,15 @@ from .serializers import (
 REGISTRATION_STATUSES = Registration.Status.values
 
 
+def _user_role(user) -> str:
+    """Exposição externa da equipe do usuário (admin/suporte), sem metadados internos."""
+    if getattr(user, "is_superuser", False):
+        return "admin"
+    if getattr(user, "is_support", False):
+        return "suporte"
+    return "staff"
+
+
 # ---------------------------------------------------------------------------
 # Autenticação (mesmo contrato do backend Express anterior)
 # ---------------------------------------------------------------------------
@@ -45,7 +54,7 @@ def login_view(request):
     if user is None:
         return Response({"error": "E-mail ou senha inválidos."}, status=status.HTTP_401_UNAUTHORIZED)
     dj_login(request, user)
-    role = "admin" if user.is_staff else "user"
+    role = _user_role(user)
     return Response({"id": user.id, "name": user.name, "email": user.email, "role": role})
 
 
@@ -58,7 +67,7 @@ def logout_view(request):
 @api_view(["GET"])
 def me_view(request):
     user = request.user
-    role = "admin" if user.is_staff else "user"
+    role = _user_role(user)
     return Response({"id": user.id, "name": user.name, "email": user.email, "role": role})
 
 

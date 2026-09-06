@@ -1,8 +1,9 @@
 import os
 
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from accounts.models import User
+User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -19,11 +20,16 @@ class Command(BaseCommand):
                 "name": name,
                 "is_staff": True,
                 "is_superuser": True,
+                "role": User.Role.ADMIN,
             },
         )
         if created:
             user.set_password(password)
-            user.save(update_fields=["password"])
+            user.save(update_fields=["password", "role"])
             self.stdout.write(self.style.SUCCESS(f"Administrador criado: {email}"))
         else:
+            user.role = User.Role.ADMIN
+            user.is_staff = True
+            user.is_superuser = True
+            user.save(update_fields=["role", "is_staff", "is_superuser"])
             self.stdout.write(self.style.WARNING(f"Administrador já existe: {email}"))

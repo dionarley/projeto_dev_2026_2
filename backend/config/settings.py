@@ -46,6 +46,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.SecurityHeadersMiddleware",
+    "config.middleware.DjangoAdminGuardMiddleware",
     "scheduling.middleware.RateLimitMiddleware",
 ]
 
@@ -134,3 +136,28 @@ CSRF_TRUSTED_ORIGINS = _env_list(
     "CSRF_TRUSTED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
 )
+
+# ---------------------------------------------------------------------------
+# Endurecimento de transporte (MITM) — valores via ambiente:
+#   DJANGO_SSL_REDIRECT=/DJANGO_HSTS_SECONDS/DJANGO_COOKIE_SECURE são ligados
+#   em produção (atrás de proxy TLS); no dev local (HTTP) ficam desligados.
+# ---------------------------------------------------------------------------
+if os.environ.get("DJANGO_SSL_REDIRECT", "false").lower() == "true":
+    SECURE_SSL_REDIRECT = True
+    if os.environ.get("DJANGO_SECURE_PROXY_SSL_HEADER", "false").lower() == "true":
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0"))
+if SECURE_HSTS_SECONDS:
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+if os.environ.get("DJANGO_COOKIE_SECURE", "false").lower() == "true":
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+# Sempre ativos (não dependem de TLS): reutilizam as flags do Django já
+# ligadas por padrão em versões recentes e deixam explícito o contrato.
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"

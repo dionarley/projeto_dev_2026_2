@@ -79,6 +79,8 @@ Sem `DATABASE_URL` o Django usa um **SQLite local** (`data.sqlite` na raiz); com
 | `scripts/logs.sh` | Acompanha os logs (`--follow`). `scripts/logs.sh web` filtra o serviço; `TAIL=50` controla o tamanho. |
 | `scripts/dev.sh` | Dev local **sem docker**: migrações/seeds + Django (:8000) + Vite (:5173) juntos. |
 | `scripts/seed.sh` | Migra e popula catálogo + admin (idempotente). |
+| `scripts/db-shell.sh` | `psql` interativo/1 comando no Postgres com o papel de **manutenção** (`vidasaude_admin`). |
+| `scripts/db-backup.sh` | `pg_dump` via papel de manutenção em `db/backups/` (`OUT=` para outra saída). |
 
 Ciclo de vida típico com Docker:
 
@@ -111,9 +113,48 @@ A imagem builda o front numa etapa Node e o runtime Python roda `migrate` + seed
 
 O **smoke** (`scripts/smoke.sh`) protege contra o boot quebrado já visto do `web` (container apagado por `failed to resolve host 'db'`): ele espera o Postgres ficar **healthy**, garante o `web` rodando, resolve o host `db` de dentro da rede do compose e só então considera OK com a página em HTTP 200.
 
+### Banco: privilégios mínimos (Papéis Suporte/TI)
+
+O boot do Postgres roda [`db/init/01-roles.sql`](db/init/01-roles.sql) na
+primeira inicialização do volume e cria o papel de aplicação **`vidasaude_app`**
+(**não-superuser**, com `CREATE` em `public` para as migrations). O Django **nunca**
+conecta como superuser:
+
+| Papel | Uso | Privilégio |
+|-------|-----|------------|
+| `vidasaude_app` | Aplicação (Django/migrations), via `DATABASE_URL` | Não-superuser; DML/DDL só no schema `public` |
+| `vidasaude_admin` | Manutenção (TI): `scripts/db-shell.sh`, `scripts/db-backup.sh` | Superuser (bootstrap do container) |
+
+> **Atenção**: a troca do papel superuser (numa base já iniciada) exige recriar o
+> volume do Postgres (`scripts/stop.sh VOLUMES=1 && scripts/start.sh`) para o init
+> re-rodar — os scripts `docker-entrypoint-initdb.d` só executam num volume vazio.
+
 > Em daemons com NAT restrito (alguns sandboxes/CI bloqueiam o `-p`), use o override com rede do host — nada de iptables:
 > `docker compose -f docker-compose.yml -f docker-compose.host.yml up --build`
 > Tudo fica em `127.0.0.1` (web em `:8000`, Postgres em `:5432`).
+
+## Segurança (tarefas: sanitizar, SQLi, XSS, MITM/DDoS, privilégios)
+
+### Sanitização e SQLi
+
+- Entradas de usuário passam por `strip_control_chars()` (remove `\x00..\x1f`, `\x7f`), limites de tamanho e máscaras (`validate_phone`) em `backend/scheduling/validators.py`, aplicadas tanto nos **serializers** (`scheduling/serializers.py`) quanto nos **modelos** (bloqueia a entrada também pelo Django admin).
+- Nenhuma consulta usa SQL cru — tudo passa pelo **ORM parametrizado do Django**. `scripts/check.sh` converte `makemigrations --check` em teste de regressão, e `test_security.py` exercita payloads clássicos (`' OR 1=1--`, `'; DROP TABLE--`) na busca do painel.
+
+### XSS
+
+- Todo response ganha `Content-Security-Policy` (`default-src 'self'` + `frame-ancestors 'none'`), `Referrer-Policy: same-origin` e `Permissions-Policy` via `config/middleware.py`.
+- O front (React) escapa por padrão; o **export CSV do painel** prefixa com `'` valores que começam com `=`, `+`, `-`, `@`, tab ou CR (evita CSV/Formula injection no Excel/Sheets).
+
+### MITM (transporte) e DDoS (rate limit)
+
+- `backend/config/settings.py` habilita via ambiente: `SECURE_SSL_REDIRECT`/`SECURE_PROXY_SSL_HEADER` (atrás de proxy TLS), `SECURE_HSTS_SECONDS`/preload e `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE`; `X_Content_Type_Options nosniff`, `Referrer-Policy` e `X-Frame-Options: DENY` ficam sempre ligados.
+- `RateLimitMiddleware` (`scheduling/middleware.py`) limita por IP (registro 5/min, login 30/min) e **por conta** (IP+e-mail) no login (10/15min), com suporte a `X-Forwarded-For` (`USE_X_FORWARDED_FOR=1`) para produção atrás de proxy. Limites ajustáveis por env `RATE_LIMIT_*`.
+
+### Controle de privilégios (equipes)
+
+- `accounts.User.role`: **`admin`** (superuser, inclui o Django admin) vs **`suporte`** (painel de operação `/api/admin/**`, acesso bloqueado ao `/admin/` por `DjangoAdminGuardMiddleware`).
+- Criação de usuário da equipe de suporte: `python manage.py create_support <email> --name "... " --password "..."` (repete senha gerada quando omitida).
+- Banco com **least-privilege**: aplicação roda como `vidasaude_app` (não-superuser); manutenção/backup usam `vidasaude_admin` via `scripts/db-shell.sh` / `scripts/db-backup.sh`.
 
 ## Testes
 
@@ -122,7 +163,7 @@ scripts/check.sh            # roda tudo; ou só os testes:
 cd backend && python manage.py test
 ```
 
-Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas passadas/opções inativas/duplicados), anti-spam por IP (5 requisições/min), autenticação do painel, mudança de status (confirmar/cancelar) e gestão de opções. Detalhes em [`docs/TODO.md`](docs/TODO.md).
+Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas passadas/opções inativas/duplicados), anti-spam por IP (5 requisições/min no registro; login 30/min por IP + 10/15min por conta), autenticação do painel, mudança de status (confirmar/cancelar), gestão de opções e a camada de segurança (sanitização, SQLi, headers, RBAC suporte×admin). Detalhes em [`docs/TODO.md`](docs/TODO.md).
 
 > Credenciais do painel criadas no seed: `admin@vidasaude.com` / `admin123`.
 > Para trocar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` no `.env` do `backend/`.

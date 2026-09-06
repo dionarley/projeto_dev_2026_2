@@ -1,11 +1,15 @@
 from django.db import models
 
+from .validators import validate_no_control_chars, validate_phone
+
 
 class Option(models.Model):
     """Especialidade/atendimento oferecido (agendável na página pública)."""
 
-    title = models.CharField("título", max_length=120)
-    description = models.TextField("descrição", blank=True, default="")
+    title = models.CharField("título", max_length=120, validators=[validate_no_control_chars])
+    description = models.TextField(
+        "descrição", blank=True, default="", validators=[validate_no_control_chars]
+    )
     price_cents = models.PositiveIntegerField("preço (centavos)", default=0)
     duration_min = models.PositiveIntegerField("duração (min)", default=30)
     active = models.BooleanField("ativa", default=True)
@@ -31,9 +35,17 @@ class Registration(models.Model):
         CONFIRMADO = "confirmado", "Confirmado"
         CANCELADO = "cancelado", "Cancelado"
 
-    name = models.CharField("nome", max_length=150)
+    name = models.CharField(
+        "nome", max_length=150, validators=[validate_no_control_chars]
+    )
     email = models.EmailField("e-mail")
-    phone = models.CharField("telefone", max_length=30, blank=True, default="")
+    phone = models.CharField(
+        "telefone",
+        max_length=30,
+        blank=True,
+        default="",
+        validators=[validate_phone],
+    )
     option = models.ForeignKey(
         Option, on_delete=models.CASCADE, related_name="registrations"
     )
