@@ -11,8 +11,7 @@ export type Option = {
   description: string;
   price_cents: number;
   duration_min: number;
-  /** 0/1 vindo da API SQLite; aceita boolean nos formulários do painel. */
-  active: number | boolean;
+  active: boolean;
   registrations?: number;
 };
 
@@ -56,10 +55,38 @@ export class ApiError extends Error {
   }
 }
 
+let csrfToken: string | null = null;
+
+function readCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+async function ensureCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  const fromCookie = readCookie("csrftoken");
+  if (fromCookie) {
+    csrfToken = fromCookie;
+    return fromCookie;
+  }
+  await req<{ csrfToken: string }>("/api/csrf");
+  csrfToken = readCookie("csrftoken") ?? "";
+  return csrfToken;
+}
+
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const safeMethod = !options.method || ["GET", "HEAD", "OPTIONS"].includes(options.method);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...((options.headers as Record<string, string>) ?? {}),
+  };
+  if (!safeMethod) {
+    headers["X-CSRFToken"] = await ensureCsrfToken();
+  }
+
   const res = await fetch(path, {
     credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
+    headers,
     ...options,
   });
 

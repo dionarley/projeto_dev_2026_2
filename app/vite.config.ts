@@ -5,6 +5,8 @@ import path from "node:path";
 
 // Vite config — https://vitejs.dev/config/
 export default defineConfig({
+  // Em produção (Docker), o Django servirá o build sob /static/frontend/.
+  base: process.env.VITE_BASE || "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -16,7 +18,7 @@ export default defineConfig({
     port: parseInt(process.env.PORT || "5173"),
     proxy: {
       "/api": {
-        target: process.env.API_URL || "http://localhost:3333",
+        target: process.env.API_URL || "http://localhost:8000",
         changeOrigin: true,
       },
     },

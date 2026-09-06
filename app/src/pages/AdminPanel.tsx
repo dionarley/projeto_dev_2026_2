@@ -521,7 +521,7 @@ function OptionsTab({ toast }: { toast: (k: "ok" | "err", s: string) => void }) 
       description: opt.description,
       price_cents: String((opt.price_cents / 100).toFixed(2).replace(".", ",")),
       duration_min: opt.duration_min,
-      active: opt.active === 1,
+      active: opt.active,
     });
     setFormError("");
   };
@@ -562,8 +562,8 @@ function OptionsTab({ toast }: { toast: (k: "ok" | "err", s: string) => void }) 
 
   const toggleActive = async (opt: Option) => {
     try {
-      await api.updateOption(opt.id, { active: opt.active === 1 ? false : true });
-      toast("ok", opt.active === 1 ? `"${opt.title}" ocultada da página pública.` : `"${opt.title}" publicada.`);
+      await api.updateOption(opt.id, { active: !opt.active });
+      toast("ok", opt.active ? `"${opt.title}" ocultada da página pública.` : `"${opt.title}" publicada.`);
       reload();
     } catch (err) {
       toast("err", err instanceof Error ? err.message : "Erro ao atualizar.");
@@ -598,12 +598,12 @@ function OptionsTab({ toast }: { toast: (k: "ok" | "err", s: string) => void }) 
           <div
             key={opt.id}
             className="bg-white rounded-lg p-5 flex flex-wrap items-center gap-4"
-            style={{ border: "1px solid #E2E8F0", opacity: opt.active === 1 ? 1 : 0.65 }}
+            style={{ border: "1px solid #E2E8F0", opacity: opt.active ? 1 : 0.65 }}
           >
             <div className="flex-1 min-w-[200px]">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-semibold text-sm" style={{ fontFamily: "'Outfit', sans-serif", color: "#0F172A" }}>{opt.title}</p>
-                {opt.active === 1 ? (
+                {opt.active ? (
                   <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: "#ECFDF5", color: "#10B981" }}>Ativa</span>
                 ) : (
                   <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ backgroundColor: "#F8FAFC", color: "#64748B" }}>Desativada</span>
@@ -627,9 +627,9 @@ function OptionsTab({ toast }: { toast: (k: "ok" | "err", s: string) => void }) 
               <button
                 onClick={() => toggleActive(opt)}
                 className="text-xs px-3 py-1.5 rounded font-semibold transition-colors"
-                style={{ border: "1px solid #E2E8F0", color: opt.active === 1 ? "#D97706" : "#059669" }}
+                style={{ border: "1px solid #E2E8F0", color: opt.active ? "#D97706" : "#059669" }}
               >
-                {opt.active === 1 ? "Ocultar" : "Publicar"}
+                {opt.active ? "Ocultar" : "Publicar"}
               </button>
             </div>
           </div>
