@@ -31,9 +31,9 @@ frontend/                # SPA React (Vite + Tailwind)
   src/
     pages/               # Landing (pública), Login, AdminPanel
     lib/api.ts           # cliente HTTP tipado do front
-scripts/                 # automação (check, dev, seed)
+scripts/                 # automação (check, dev, seed, smoke)
 docs/                    # DECISOES.md, TODO.md
-Dockerfile · docker-compose.yml · .gitignore · .dockerignore
+Dockerfile · docker-compose.yml · docker-compose.host.yml · .gitignore · .dockerignore
 ```
 
 ## Pré-requisitos
