@@ -68,14 +68,19 @@ Sem `DATABASE_URL` o Django usa um **SQLite local** (`data.sqlite` na raiz); com
 
 | Script | Faz o quê |
 |--------|-----------|
-| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, build do front e `docker compose config`. Falha (exit != 0) se qualquer etapa quebrar. |
+| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, build do front, `docker compose config` e **smoke da stack** (veja abaixo). Falha (exit != 0) se qualquer etapa quebrar. |
+| `scripts/smoke.sh` | **Smoke test de infra**: sobe a stack via compose e valida Postgres saudável, container web no ar, DNS do host `db` resolvendo na rede do compose e a página respondendo **HTTP 200** — exatamente o cenário que já quebrou o boot do web. |
 | `scripts/dev.sh` | Aplica migrações/seeds e sobe Django (:8000) + Vite (:5173) juntos. |
 | `scripts/seed.sh` | Migra e popula catálogo + admin (idempotente). |
 
 ```bash
 scripts/check.sh            # venv fora do padrão? VENV=backend/.venv scripts/check.sh
+scripts/smoke.sh            # smoke isolado (SKIP_BUILD=1 reusa a imagem)
 scripts/dev.sh
 ```
+
+> Sem acesso ao daemon do Docker (usuário fora do grupo `docker`), use
+> `DOCKER="sudo docker" scripts/check.sh` (ou `scripts/smoke.sh`).
 
 ## Rodando com Docker (produção paridade)
 
@@ -84,6 +89,8 @@ docker compose up --build   # -> http://localhost:8000 (Postgres 16 + web)
 ```
 
 A imagem builda o front numa etapa Node e o runtime Python roda `migrate` + seeds + gunicorn. O SPA é servido pelo Django sob `/static/frontend/`.
+
+O **smoke** (`scripts/smoke.sh`) protege contra o boot quebrado já visto do `web` (container apagado por `failed to resolve host 'db'`): ele espera o Postgres ficar **healthy**, garante o `web` rodando, resolve o host `db` de dentro da rede do compose e só então considera OK com a página em HTTP 200.
 
 > Em daemons com NAT restrito (alguns sandboxes/CI bloqueiam o `-p`), use o override com rede do host — nada de iptables:
 > `docker compose -f docker-compose.yml -f docker-compose.host.yml up --build`

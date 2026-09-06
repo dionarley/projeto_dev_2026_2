@@ -199,16 +199,16 @@ export default function Landing() {
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 grid grid-cols-2">
+        <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-2">
           <div style={{ backgroundColor: "#0F172A" }} />
-          <div style={{ backgroundColor: "#F8FAFC" }} />
+          <div className="hidden md:block" style={{ backgroundColor: "#F8FAFC" }} />
         </div>
-        <div className="relative max-w-6xl mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+        <div className="relative max-w-6xl mx-auto px-6 py-12 md:py-20 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase mb-4" style={{ color: "#10B981" }}>
               Telemedicina de precisão
             </p>
-            <h1 className="text-5xl font-bold leading-tight mb-6 text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <h1 className="text-3xl sm:text-5xl font-bold leading-tight mb-6 text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
               Saúde de qualidade,<br />
               <span style={{ color: "#10B981" }}>onde você estiver.</span>
             </h1>
@@ -239,7 +239,7 @@ export default function Landing() {
                 Sou da equipe
               </Link>
             </div>
-            <div className="flex items-center gap-8 mt-10">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-8 mt-10">
               {[["98%", "Satisfação"], ["50k+", "Consultas/mês"], ["800+", "Médicos"]].map(([n, l]) => (
                 <div key={l}>
                   <p className="text-2xl font-bold text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>{n}</p>
@@ -283,7 +283,7 @@ export default function Landing() {
                 </div>
               </div>
             </div>
-            <div className="absolute -bottom-4 -left-4 bg-white rounded-lg p-3 shadow-lg" style={{ border: "1px solid #E2E8F0" }}>
+            <div className="relative md:absolute md:-bottom-4 md:-left-4 bg-white rounded-lg p-3 shadow-lg" style={{ border: "1px solid #E2E8F0" }}>
               <p className="text-xs" style={{ color: "#64748B" }}>Tempo médio</p>
               <p className="font-bold text-sm" style={{ color: "#0F172A" }}>~8 min de espera</p>
             </div>

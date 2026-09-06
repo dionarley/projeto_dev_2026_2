@@ -18,6 +18,7 @@ Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
 - [x] Testes unitários de serializers, usuário e anti-spam (`scheduling/tests/test_units.py`, `accounts/tests.py`).
 - [x] Scripts de automação: `scripts/check.sh` (gate CI local), `scripts/dev.sh`, `scripts/seed.sh`.
 - [x] Gate completo verde (testes + `tsc` + build + `docker compose config`).
+- [x] **Smoke de infra** (`scripts/smoke.sh`) no gate: db `healthy` + web no ar + DNS do host `db` + HTTP 200 da página — evita o crash `failed to resolve host 'db'` no boot do `web`.
 - [x] Branches `backend-django` e `docker` mergeadas em `development`.
 - [ ] **PR única** `development` -> `main` criada e aberta.
 - [ ] Resposta a comentários da revisão (se houver).
@@ -25,8 +26,9 @@ Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
 ## Gate antes de merge / PR
 
 ```bash
-VENV=backend/.venv scripts/check.sh   # testes + tsc + build + compose
+VENV=backend/.venv scripts/check.sh   # testes + tsc + build + compose config + smoke da stack
 ```
+> Sem grupo `docker`, use `DOCKER="sudo docker" scripts/check.sh`.
 
 ## Notas
 
