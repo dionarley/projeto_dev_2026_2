@@ -153,8 +153,51 @@ conecta como superuser:
 
 ### Controle de privilégios (equipes)
 
-- `accounts.User.role`: **`admin`** (superuser, inclui o Django admin) vs **`suporte`** (painel de operação `/api/admin/**`, acesso bloqueado ao `/admin/` por `DjangoAdminGuardMiddleware`).
-- Criação de usuário da equipe de suporte: `python manage.py create_support <email> --name "... " --password "..."` (repete senha gerada quando omitida).
+`accounts.User.role`: **`admin`** (superuser, inclui o Django admin) vs **`suporte`** (painel de operação `/api/admin/**`, acesso bloqueado ao `/admin/` por `DjangoAdminGuardMiddleware`).
+
+| Papel | Acesso ao painel (`/api/admin/**`) | Acesso ao Django admin (`/admin/`) | Criação |
+|-------|-------------------------------------|-------------------------------------|---------|
+| **admin** | Total | Total | `seed_admin` (idempotente) |
+| **suporte** | Operações (registros, opções, status) | 403 Forbidden | `create_support` (por registro) |
+
+#### Usuários disponíveis
+
+O **admin** é seedado automaticamente no boot:
+
+| Email | Senha | Papel |
+|-------|-------|-------|
+| `admin@vidasaude.com` | `admin123` | admin (superuser) |
+
+Para personalizar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` no `.env` do `backend/` — o `seed_admin` é idempotente e atualiza o existente.
+
+#### Criar usuário de suporte
+
+```bash
+# Senha aleatória (impressa no terminal):
+sudo docker exec vidasaude-web python manage.py create_support \
+  joao@vidasaude.com --name "João Suporte"
+
+# Senha definida:
+sudo docker exec vidasaude-web python manage.py create_support \
+  maria@vidasaude.com --name "Maria Suporte" --password "senha123"
+```
+
+Sem Docker:
+
+```bash
+cd backend
+python manage.py create_support joao@vidasaude.com --name "João Suporte"
+```
+
+#### Como logar
+
+O login é por **session cookie** (sem JWT):
+
+1. `POST /api/login` com `{"email": "...", "password": "..."}`.
+2. O servidor retorna `{id, name, email, role}` e seta um cookie de sessão.
+3. `GET /api/me` confirma o usuário logado e seu papel.
+4. Para mutations, enviar header `X-CSRFToken` (token obtido em `GET /api/csrf`).
+
 - Banco com **least-privilege**: aplicação roda como `vidasaude_app` (não-superuser); manutenção/backup usam `vidasaude_admin` via `scripts/db-shell.sh` / `scripts/db-backup.sh`.
 
 ## Testes
@@ -166,9 +209,6 @@ cd frontend && pnpm exec vitest run   # frontend (React)
 ```
 
 Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas passadas/opções inativas/duplicados), anti-spam por IP (5 requisições/min no registro; login 30/min por IP + 10/15min por conta), autenticação do painel, mudança de status (confirmar/cancelar), gestão de opções e a camada de segurança (sanitização, SQLi, headers, RBAC suporte×admin). No front, os testes de componente validam a **imagem da médica self-hosted** na landing (regressão do bug da CSP). Detalhes em [`docs/TODO.md`](docs/TODO.md).
-
-> Credenciais do painel criadas no seed: `admin@vidasaude.com` / `admin123`.
-> Para trocar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` no `.env` do `backend/`.
 
 ## CI / CD
 
