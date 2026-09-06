@@ -1,0 +1,35 @@
+# TODO — fluxo de trabalho
+
+Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
+
+## Histórico de entrega
+
+- [x] **Etapa 1 — Express + SQLite** (deploy em `main`, PR #4): formulário público,
+      painel de gestão, sessão, anti-spam. Testes Vitest/Supertest.
+- [x] **Etapa 2 — Migração para Django** (branch `backend-django`): Django 6 + DRF 3.18
+      replicando o contrato de API do Express. Front React praticamente intacto.
+- [x] **Etapa 3 — Docker** (branch `docker`): Dockerfile multi-stage e docker-compose
+      (Postgres 16 + gunicorn/whitenoise), validado de ponta a ponta.
+
+## Estado atual
+
+- [x] PRs por-branch (#5, #6, #7) fechadas — consolidação é única.
+- [x] Testes de integração do contrato (11) portados para Django `TestCase`.
+- [x] Testes unitários (15) de serializers + anti-spam (`scheduling/test_units.py`).
+- [x] Scripts de automação: `scripts/check.sh` (gate CI local), `scripts/dev.sh`, `scripts/seed.sh`.
+- [x] Gate completo verde (testes + `tsc` + build + `docker compose config`).
+- [x] Branches `backend-django` e `docker` mergeadas em `development`.
+- [ ] **PR única** `development` -> `main` criada e aberta.
+- [ ] Resposta a comentários da revisão (se houver).
+
+## Gate antes de merge / PR
+
+```bash
+VENV=backend/.venv scripts/check.sh   # testes + tsc + build + compose
+```
+
+## Notas
+
+- Local sem Docker: `scripts/dev.sh` (Django :8000 + Vite :5173) ou dois terminais.
+- Docker: `docker compose up --build` → http://localhost:8000.
+- Admin padrão: `admin@vidasaude.com` / `admin123` (variáveis `ADMIN_*`).
