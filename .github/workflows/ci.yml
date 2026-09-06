@@ -52,6 +52,9 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
+      - name: Prepara ambiente (gera .env com segredos aleatórios)
+        run: ./scripts/setup-dev-env.sh
+
       - name: Gate local (testes, vitest, tsc, build, compose config)
         run: ./scripts/check.sh
         env:

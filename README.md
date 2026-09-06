@@ -45,12 +45,29 @@ Dockerfile · docker-compose.yml · docker-compose.host.yml · .gitignore · .do
 
 ## Rodando em desenvolvimento
 
+> **Segredos**: nenhuma senha/chave é fixa no repositório. O comando
+> `scripts/setup-dev-env.sh` gera `.env` (raiz) e `backend/.env` com senhas
+> **aleatórias** — ambos ignorados pelo git; só os `.env.example` (modelos)
+> estão versionados.
+
 ```bash
 python -m venv /tmp/venv           # ou backend/.venv
 pip install -r backend/requirements.txt
-scripts/seed.sh                    # migra + cria catálogo e admin (idempotente)
+
+scripts/setup-dev-env.sh           # (1ª vez) gera .env e backend/.env com senhas aleatórias
+scripts/seed.sh                    # migra + cria catálogo e admin (usa as senhas do .env)
 scripts/dev.sh                     # Django :8000 + Vite :5173 (proxy /api -> :8000)
 ```
+
+Para subir a stack inteira com Docker:
+
+```bash
+scripts/setup-dev-env.sh           # (1ª vez) gera .env com senhas aleatórias
+scripts/start.sh                   # Postgres 16 + web -> http://localhost:8000
+```
+
+> As credenciais do admin geradas aparecem no output do `setup-dev-env.sh`
+> (também gravadas nos `.env`, sem nunca irem para o git).
 
 Ou, manualmente:
 
@@ -69,6 +86,7 @@ Sem `DATABASE_URL` o Django usa um **SQLite local** (`data.sqlite` na raiz); com
 
 | Script | Faz o quê |
 |--------|-----------|
+| `scripts/setup-dev-env.sh` | **Ambiente/segredos**: gera `.env` (raiz) e `backend/.env` com senhas e `DJANGO_SECRET_KEY` **aleatórias** (idempotente; preserva edições manuais). Os `.env` ficam no `.gitignore`. |
 | `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, testes unitários do front (**vitest**), build do front (com verificação de asset self-hosted), `docker compose config` e **smoke da stack**. Falha (exit != 0) se qualquer etapa quebrar. |
 | `scripts/test.sh` | Testes rápidos **sem docker**: backend Django (check + migrações + testes), `tsc --noEmit`, testes unitários do front (**vitest**) e build do front (verifica que `dist/` não referencia imagens externas). |
 | `scripts/smoke.sh` | **Smoke de infra**: sobe a stack via compose e valida Postgres saudável, container web no ar, DNS do host `db` e página em **HTTP 200**. Derruba a stack ao final (`SMOKE_KEEP=1` mantém). |
@@ -115,17 +133,19 @@ O **smoke** (`scripts/smoke.sh`) protege contra o boot quebrado já visto do `we
 
 ### Banco: privilégios mínimos (Papéis Suporte/TI)
 
-O boot do Postgres roda [`db/init/01-roles.sql`](db/init/01-roles.sql) na
+O boot do Postgres roda [`db/init/01-roles.sh`](db/init/01-roles.sh) na
 primeira inicialização do volume e cria o papel de aplicação **`vidasaude_app`**
 (**não-superuser**, com `CREATE` em `public` para as migrations). O Django **nunca**
-conecta como superuser:
+conecta como superuser. As senhas dos papéis vêm do **`.env`** da raiz
+(gerado com senhas aleatórias por `scripts/setup-dev-env.sh`) — nada fixo
+no compose/scripts:
 
 | Papel | Uso | Privilégio |
 |-------|-----|------------|
 | `vidasaude_app` | Aplicação (Django/migrations), via `DATABASE_URL` | Não-superuser; DML/DDL só no schema `public` |
 | `vidasaude_admin` | Manutenção (TI): `scripts/db-shell.sh`, `scripts/db-backup.sh` | Superuser (bootstrap do container) |
 
-> **Atenção**: a troca do papel superuser (numa base já iniciada) exige recriar o
+> **Atenção**: a troca de papel/senha (numa base já iniciada) exige recriar o
 > volume do Postgres (`scripts/stop.sh VOLUMES=1 && scripts/start.sh`) para o init
 > re-rodar — os scripts `docker-entrypoint-initdb.d` só executam num volume vazio.
 
@@ -134,6 +154,22 @@ conecta como superuser:
 > Tudo fica em `127.0.0.1` (web em `:8000`, Postgres em `:5432`).
 
 ## Segurança (tarefas: sanitizar, SQLi, XSS, MITM/DDoS, privilégios)
+
+### Segredos: nada fixo, nada versionado
+
+- **Nenhuma senha/chave é hardcoded**: `POSTGRES_PASSWORD`, senha do papel de
+  aplicação, `DJANGO_SECRET_KEY` e `ADMIN_PASSWORD` vêm do `.env` (raiz /
+  `backend/.env`), gerados aleatoriamente por `scripts/setup-dev-env.sh`.
+- O `docker-compose` usa `${VAR:?...}` — **falha no `up` se um segredo faltar**
+  (nenhum default de senha no YAML).
+- O `db/init/01-roles.sh` lê `POSTGRES_APP_PASSWORD` do ambiente do container
+  (injetada pelo compose a partir do `.env`), e `scripts/db-shell.sh`/`db-backup.sh`
+  buscam as credenciais no `.env` da raiz.
+- `.gitignore` ignora `.env` e `.env.*` (mantendo apenas os `.env.example`).
+  O CI gera um `.env` efêmero com `scripts/setup-dev-env.sh` para teste.
+- Com `DATABASE_URL` ausente o Django usa SQLite; `DJANGO_SECRET_KEY` ausente
+  em `DEBUG` gera uma **chave efêmera** (só desenvolvimento) e em produção é
+  erro deliberado (`ImproperlyConfigured`).
 
 ### Sanitização e SQLi
 
@@ -162,13 +198,14 @@ conecta como superuser:
 
 #### Usuários disponíveis
 
-O **admin** é seedado automaticamente no boot:
+O **admin** é seedado automaticamente no boot com a senha do `.env` (gerada
+aleatoriamente pelo `scripts/setup-dev-env.sh` — aparecem no output do script):
 
 | Email | Senha | Papel |
 |-------|-------|-------|
-| `admin@vidasaude.com` | `admin123` | admin (superuser) |
+| `admin@vidasaude.com` | gerada no `.env` (variável `ADMIN_PASSWORD`) | admin (superuser) |
 
-Para personalizar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` no `.env` do `backend/` — o `seed_admin` é idempotente e atualiza o existente.
+Para personalizar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` e `ADMIN_NAME` no `.env` da raiz / `backend/.env` — o `seed_admin` é idempotente e atualiza o existente. `seed_admin` **recusa** rodar sem `ADMIN_PASSWORD` no ambiente.
 
 #### Criar usuário de suporte
 

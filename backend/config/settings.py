@@ -17,11 +17,23 @@ if _env_file.exists():
 def _env_list(name: str, default: str) -> list[str]:
     return [x.strip() for x in os.environ.get(name, default).split(",") if x.strip()]
 
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY", "chave-de-desenvolvimento-nao-usar-em-producao"
-)
-
+# SECRET_KEY sempre do ambiente. Em DEBUG gera uma efêmera (segurança ok só
+# para desenvolvimento); em produção a ausência é um erro deliberado.
+_SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
+if _SECRET_KEY:
+    SECRET_KEY = _SECRET_KEY
+elif DEBUG:
+    import secrets
+
+    SECRET_KEY = f"dev-efemera-{secrets.token_hex(32)}"
+else:
+    from django.core.exceptions import ImproperlyConfigured
+
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY é obrigatório fora do DEBUG (segurança). "
+        "Defina-o no .env (scripts/setup-dev-env.sh)."
+    )
 
 ALLOWED_HOSTS = _env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
 

@@ -1,15 +1,16 @@
-# Var/ambiente de execução apenas: substitui a rede bridge + publish de
+# Override de ambiente de execução apenas: substitui a rede bridge + publish de
 # portas por network host. Necessário em daemons com iptables NAT restrito
 # (ex.: sandboxes/CI que bloqueiam `-p`). Uso:
 #
 #   docker compose -f docker-compose.yml -f docker-compose.host.yml up --build
 #
 # Com host networking tudo acessível em 127.0.0.1 (web em :8000, Postgres em :5432).
+# Os segredos vêm do .env (raiz) — as mesmas variáveis do docker-compose.yml.
 services:
   db:
     network_mode: host
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U vidasaude_admin -d vidasaude"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -18,4 +19,4 @@ services:
     network_mode: host
     ports: !reset []
     environment:
-      DATABASE_URL: postgres://vidasaude_app:vidasaude_app@127.0.0.1:5432/vidasaude
+      DATABASE_URL: postgres://${POSTGRES_APP_USER:-vidasaude_app}:${POSTGRES_APP_PASSWORD:?Defina POSTGRES_APP_PASSWORD no .env (scripts/setup-dev-env.sh)}@127.0.0.1:5432/${POSTGRES_DB:-vidasaude}
