@@ -85,6 +85,10 @@ docker compose up --build   # -> http://localhost:8000 (Postgres 16 + web)
 
 A imagem builda o front numa etapa Node e o runtime Python roda `migrate` + seeds + gunicorn. O SPA é servido pelo Django sob `/static/frontend/`.
 
+> Em daemons com NAT restrito (alguns sandboxes/CI bloqueiam o `-p`), use o override com rede do host — nada de iptables:
+> `docker compose -f docker-compose.yml -f docker-compose.host.yml up --build`
+> Tudo fica em `127.0.0.1` (web em `:8000`, Postgres em `:5432`).
+
 ## Testes
 
 ```bash

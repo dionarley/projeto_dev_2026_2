@@ -1,0 +1,21 @@
+# Var/ambiente de execução apenas: substitui a rede bridge + publish de
+# portas por network host. Necessário em daemons com iptables NAT restrito
+# (ex.: sandboxes/CI que bloqueiam `-p`). Uso:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.host.yml up --build
+#
+# Com host networking tudo acessível em 127.0.0.1 (web em :8000, Postgres em :5432).
+services:
+  db:
+    network_mode: host
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidasaude -d vidasaude"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    network_mode: host
+    ports: !reset []
+    environment:
+      DATABASE_URL: postgres://vidasaude:vidasaude@127.0.0.1:5432/vidasaude
