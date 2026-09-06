@@ -21,6 +21,7 @@ Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
 - [x] `scripts/test.sh` — testes rápidos sem docker (backend + `tsc` + vitest + build + checagem de assets externos no `dist/`).
 - [x] **Segurança** (commit `fd2cb9a`): sanitização (validators/serializers/models), testes de SQLi/XSS, headers+CSP, rate limit, RBAC `admin`×`suporte` + guarda no `/admin/`, banco least-privilege (`vidasaude_app`), `create_support`, CSV-injection no painel.
 - [x] **Correção imagem da médica**: self-host do asset na landing + exceção de CSP só para o Google Fonts, com **testes de regressão** — `Landing.test.tsx` (vitest) e checagem no `test.sh`/`check.sh` de que o `dist/` não referencia imagens externas.
+- [x] **Segmentos sem hardcoded** (commit `6ea1059`): `scripts/setup-dev-env.sh` gera `.env`/`backend/.env` com senhas e `DJANGO_SECRET_KEY` aleatórias; compose usa `${VAR:?}` (falha sem segredo); `db/init/01-roles.sh` injeta a senha do ambiente; `seed_admin` exige `ADMIN_PASSWORD`; `settings.py` recusa rodar sem `DJANGO_SECRET_KEY` fora do DEBUG; db-shell/backup leem o `.env`; `.env`/`.env.*` ignorados (só `.env.example` versionados).
 - [x] **CI** (`.github/workflows/ci.yml`): gate completo + smoke em todo push/PR.
 - [x] Gate completo verde (testes + `tsc` + vitest + build + `docker compose config`).
 - [x] **Smoke de infra** (`scripts/smoke.sh`) no gate: db `healthy` + web no ar + DNS do host `db` + HTTP 200 da página — evita o crash `failed to resolve host 'db'` no boot do `web`.

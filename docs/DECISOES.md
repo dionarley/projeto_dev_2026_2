@@ -47,6 +47,7 @@ O que fiz com a "deixa" do Express que **não** deixei para trás na migração:
 3. **Estados de carregamento e vazios no painel** — skeleton loading nas listas e mensagens quando não há nada.
 4. **Toasts de feedback** nas ações de confirmar/cancelar/editar — a spec pede feedback, entreguei visual consistente.
 5. **Login por e-mail no Django**: usuário customizado (`accounts.User`, `AbstractUser` com `USERNAME_FIELD="email"`), para o contrato da API permanecer `email + password` sem `username`.
+6. **Segredos sem hardcoded e ambiente reprodutível**: `scripts/setup-dev-env.sh` gera `.env` (raiz) e `backend/.env` com senhas e `DJANGO_SECRET_KEY` **aleatórias** — o `docker-compose` falha no `up` se faltar algum segredo (`${VAR:?}`), o init do Postgres injeta a senha do papel de aplicação via ambiente (`db/init/01-roles.sh`), `seed_admin` exige `ADMIN_PASSWORD`, e `settings.py` recusa rodar sem `DJANGO_SECRET_KEY` fora do DEBUG. Só os `.env.example` são versionados; `.env`/`.env.*` ficam no `.gitignore`. Quem clona o repo roda 1 comando e tem um ambiente seguro idêntico — sem depender de "credenciais padrão" documentadas (que viram senhas conhecidas no mundo real).
 
 ## Como usei IA
 

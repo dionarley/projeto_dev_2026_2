@@ -31,8 +31,9 @@ frontend/                # SPA React (Vite + Tailwind)
   src/
     pages/               # Landing (pública), Login, AdminPanel
     lib/api.ts           # cliente HTTP tipado do front
-scripts/                 # automação (check, test, smoke, start, stop, restart, status, logs, dev, seed)
+scripts/                 # automação (setup-dev-env, check, test, smoke, start, stop, restart, status, logs, dev, seed, db-shell, db-backup)
 docs/                    # DECISOES.md, TODO.md
+.env.example             # modelo de ambiente/segredos (só os .env.example são versionados)
 .github/workflows/ci.yml # CI: gate completo + smoke em todo push/PR
 Dockerfile · docker-compose.yml · docker-compose.host.yml · .gitignore · .dockerignore
 ```
