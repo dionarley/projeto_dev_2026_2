@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+}
+
+:root {
+  /* Dominante — Gatilho da Limpeza */
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+
+  /* Card */
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+
+  /* Primária Tech — Gatilho da Confiança */
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+
+  /* Secundária — superfícies suaves sobre o azul */
+  --secondary: #EFF6FF;
+  --secondary-foreground: #1D4ED8;
+
+  /* Muted */
+  --muted: #E2E8F0;
+  --muted-foreground: #64748B;
+
+  /* Conversão CTA — Gatilho da Ação/Sucesso */
+  --accent: #10B981;
+  --accent-foreground: #FFFFFF;
+
+  /* Estrutura */
+  --border: #E2E8F0;
+  --ring: #2563EB;
+  --radius: 6px;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
+}

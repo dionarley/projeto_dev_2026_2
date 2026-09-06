@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.cache/
+.vite/
+vite.config.*.timestamp-*
+*.tsbuildinfo
+*-debug.log*
+logs/
+*.log
+.env*
+.env
+!/.env.example
+
+# Banco local
+*.sqlite
+*.sqlite-*
+
+# Estado da plataforma de agente (não é fonte do projeto)
+/.plugins/
+/.opencode-skills/
