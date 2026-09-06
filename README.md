@@ -31,8 +31,9 @@ frontend/                # SPA React (Vite + Tailwind)
   src/
     pages/               # Landing (pública), Login, AdminPanel
     lib/api.ts           # cliente HTTP tipado do front
-scripts/                 # automação (check, dev, seed, smoke)
+scripts/                 # automação (check, test, smoke, start, stop, restart, status, logs, dev, seed)
 docs/                    # DECISOES.md, TODO.md
+.github/workflows/ci.yml # CI: gate completo + smoke em todo push/PR
 Dockerfile · docker-compose.yml · docker-compose.host.yml · .gitignore · .dockerignore
 ```
 
@@ -68,14 +69,32 @@ Sem `DATABASE_URL` o Django usa um **SQLite local** (`data.sqlite` na raiz); com
 
 | Script | Faz o quê |
 |--------|-----------|
-| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, build do front, `docker compose config` e **smoke da stack** (veja abaixo). Falha (exit != 0) se qualquer etapa quebrar. |
-| `scripts/smoke.sh` | **Smoke test de infra**: sobe a stack via compose e valida Postgres saudável, container web no ar, DNS do host `db` resolvendo na rede do compose e a página respondendo **HTTP 200** — exatamente o cenário que já quebrou o boot do web. |
-| `scripts/dev.sh` | Aplica migrações/seeds e sobe Django (:8000) + Vite (:5173) juntos. |
+| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, build do front, `docker compose config` e **smoke da stack**. Falha (exit != 0) se qualquer etapa quebrar. |
+| `scripts/test.sh` | Testes rápidos **sem docker**: backend Django (check + migrações + testes), `tsc --noEmit` e build do front. |
+| `scripts/smoke.sh` | **Smoke de infra**: sobe a stack via compose e valida Postgres saudável, container web no ar, DNS do host `db` e página em **HTTP 200**. Derruba a stack ao final (`SMOKE_KEEP=1` mantém). |
+| `scripts/start.sh` | Sobe a stack e valida (igual ao smoke), **mantendo os containers no ar**. `REBUILD=1` força `--build`. |
+| `scripts/stop.sh` | Derruba a stack preservando os dados do Postgres. `VOLUMES=1` apaga os volumes (`-v`). |
+| `scripts/restart.sh` | Reinicia a stack (stop + start). Aceita `REBUILD=1` e `VOLUMES=1`. |
+| `scripts/status.sh` | Mostra o estado dos containers (health e portas). |
+| `scripts/logs.sh` | Acompanha os logs (`--follow`). `scripts/logs.sh web` filtra o serviço; `TAIL=50` controla o tamanho. |
+| `scripts/dev.sh` | Dev local **sem docker**: migrações/seeds + Django (:8000) + Vite (:5173) juntos. |
 | `scripts/seed.sh` | Migra e popula catálogo + admin (idempotente). |
+
+Ciclo de vida típico com Docker:
+
+```bash
+scripts/start.sh     # sobe e valida (http://localhost:8000)
+scripts/status.sh    # confere o estado
+scripts/logs.sh web  # acompanha o back
+scripts/stop.sh      # derruba (dados preservados)
+scripts/restart.sh   # stop + start
+```
 
 ```bash
 scripts/check.sh            # venv fora do padrão? VENV=backend/.venv scripts/check.sh
+scripts/test.sh             # testes sem docker (rápido)
 scripts/smoke.sh            # smoke isolado (SKIP_BUILD=1 reusa a imagem)
+scripts/seed.sh
 scripts/dev.sh
 ```
 
@@ -107,6 +126,23 @@ Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas
 
 > Credenciais do painel criadas no seed: `admin@vidasaude.com` / `admin123`.
 > Para trocar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` no `.env` do `backend/`.
+
+## CI / CD
+
+O workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda em todo
+`push` (main, development, docker, backend-django) e em qualquer `pull_request`:
+
+1. Deps Python + instalção do front (pnpm `--frozen-lockfile`).
+2. **Gate local**: `scripts/check.sh` (testes Django, `tsc --noEmit`, build do
+   front e `docker compose config`).
+3. **Smoke da stack**: `scripts/smoke.sh` com `SMOKE_HOST=1` (override de rede
+   do host, sem iptables) — sobe o Postgres, aguarda **healthy**, garante o web
+   no ar e valida **HTTP 200** da página.
+
+Concorrência por ref (cancela runs duplicados). Não há etapa de deploy de
+aplicação: o Postgres roda via compose e o backend é estateless (gunicorn +
+whitenoise), pronto para anexar um job de deploy (ex.: imagem + registry) quando
+houver infra definida.
 
 ## Decisões de stack e o que ficou de fora
 

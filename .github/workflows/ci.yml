@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, docker, backend-django]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.14"
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.34.3"
+
+jobs:
+  gate:
+    name: Gate completo (testes, build, compose e smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Deps Python
+        run: pip install -r backend/requirements.txt
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Deps frontend
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Gate local (testes, tsc, build, compose config)
+        run: ./scripts/check.sh
+        env:
+          SKIP_SMOKE: "1"
+
+      - name: Smoke da stack (sobe + db healthy + DNS 'db' + HTTP 200)
+        run: ./scripts/smoke.sh
+        env:
+          SMOKE_HOST: "1"
