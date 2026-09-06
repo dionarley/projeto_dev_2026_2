@@ -1,0 +1,12 @@
+# Contexto de build da imagem web: só fonte, sem repositórios/caches.
+.git
+app/node_modules
+app/dist
+backend/.venv
+backend/staticfiles
+backend/.env
+data.sqlite
+*.log
+*.md
+logo.png
+docs
