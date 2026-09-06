@@ -55,23 +55,19 @@ export class ApiError extends Error {
   }
 }
 
-let csrfToken: string | null = null;
-
 function readCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
 
 async function ensureCsrfToken(): Promise<string> {
-  if (csrfToken) return csrfToken;
+  // O Django ROTACIONA o token a cada login — nunca guardar em cache, pois um
+  // token antigo leva a 403 CSRF nas mutações seguintes. Sempre reler o cookie
+  // (csrftoken é HttpOnly=False para leitura via JS).
   const fromCookie = readCookie("csrftoken");
-  if (fromCookie) {
-    csrfToken = fromCookie;
-    return fromCookie;
-  }
+  if (fromCookie) return fromCookie;
   await req<{ csrfToken: string }>("/api/csrf");
-  csrfToken = readCookie("csrftoken") ?? "";
-  return csrfToken;
+  return readCookie("csrftoken") ?? "";
 }
 
 async function req<T>(path: string, options: RequestInit = {}): Promise<T> {
