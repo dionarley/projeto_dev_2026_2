@@ -1,11 +1,11 @@
 # ─── Estágio 1: build do frontend React (Vite) ─────────────────────────────
 FROM node:22-alpine AS frontend
-WORKDIR /src/app
-COPY app/package.json app/pnpm-lock.yaml ./
+WORKDIR /src/frontend
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN corepack enable \
     && corepack prepare pnpm@10.34.3 --activate \
     && pnpm install --frozen-lockfile
-COPY app/ .
+COPY frontend/ .
 # Em produção o SPA é servido pelo Django sob /static/frontend/, então o base é relativo a isso.
 ENV VITE_BASE=/static/frontend/
 RUN pnpm build
@@ -24,7 +24,7 @@ COPY --chown=nobody:nogroup backend/ /srv/backend/
 # Cria STATIC_ROOT (whitenoise emite warning se o diretório não existir).
 RUN mkdir -p /srv/backend/staticfiles
 # Frontend compilado entra no caminho esperado por settings.FRONTEND_DIST.
-COPY --chown=nobody:nogroup --from=frontend /src/app/dist /srv/app/dist
+COPY --chown=nobody:nogroup --from=frontend /src/frontend/dist /srv/frontend/dist
 
 WORKDIR /srv/backend
 
@@ -32,6 +32,6 @@ WORKDIR /srv/backend
 CMD ["sh", "-c", "python manage.py migrate \
     && python manage.py seed_options \
     && python manage.py seed_admin \
-    && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 2"]
+    && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"]
 
 EXPOSE 8000

@@ -23,13 +23,13 @@ echo "==> 1/4 Testes do backend (unitários + integração)"
 
 echo "==> 2/4 TypeScript (tsc --noEmit)"
 (
-  cd "$ROOT/app"
+  cd "$ROOT/frontend"
   pnpm exec tsc --noEmit
 )
 
 echo "==> 3/4 Build do frontend (Vite)"
 (
-  cd "$ROOT/app"
+  cd "$ROOT/frontend"
   pnpm build
 )
 

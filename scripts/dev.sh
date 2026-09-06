@@ -36,5 +36,5 @@ trap cleanup EXIT INT TERM
 ) & API_PID=$!
 
 echo "==> Django em http://localhost:8000 — subindo Vite"
-cd "$ROOT/app"
+cd "$ROOT/frontend"
 pnpm dev:web

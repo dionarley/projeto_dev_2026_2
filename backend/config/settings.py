@@ -49,7 +49,7 @@ MIDDLEWARE = [
     "scheduling.middleware.RateLimitMiddleware",
 ]
 
-ROOT_URLCONF = "core.urls"
+ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
     {
@@ -67,7 +67,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "core.wsgi.application"
+WSGI_APPLICATION = "config.wsgi.application"
 
 # Banco: se DATABASE_URL (Postgres, ex.: Docker) estiver definida, usa ele;
 # caso contrário, SQLite local em um arquivo na raiz do repositório.
@@ -106,7 +106,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 # O frontend compilado (Vite) é servido por WHITENOISE através do Django.
-FRONTEND_DIST = Path(os.environ.get("FRONTEND_DIST", str(ROOT_DIR / "app" / "dist")))
+FRONTEND_DIST = Path(os.environ.get("FRONTEND_DIST", str(ROOT_DIR / "frontend" / "dist")))
 STATICFILES_DIRS = [
     ("frontend", str(FRONTEND_DIST)),
 ]
