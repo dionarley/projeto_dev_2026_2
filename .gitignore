@@ -1,0 +1,16 @@
+# Banco local — fora do Docker o Django também usa SQLite (raiz do repositório)
+data.sqlite
+*.sqlite
+*.sqlite-*
+
+# Python / Django
+__pycache__/
+*.py[cod]
+backend/.venv/
+backend/staticfiles/
+backend/.env
+!backend/.env.example
+
+# Logs
+logs/
+*.log

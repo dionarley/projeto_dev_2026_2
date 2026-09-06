@@ -1,0 +1,103 @@
+from rest_framework import serializers
+
+from .models import Option, Registration
+
+
+def flatten_errors(errors: dict) -> dict:
+    """Converte erros do DRF (listas de mensagens) em strings, para a UI consumir direto."""
+    flat = {}
+    for field, messages in errors.items():
+        if isinstance(messages, (list, tuple)):
+            flat[field] = str(messages[0])
+        else:
+            flat[field] = str(messages)
+    return flat
+
+
+class OptionSerializer(serializers.ModelSerializer):
+    registrations = serializers.IntegerField(
+        source="registration_count", read_only=True, default=0
+    )
+
+    class Meta:
+        model = Option
+        fields = [
+            "id",
+            "title",
+            "description",
+            "price_cents",
+            "duration_min",
+            "active",
+            "registrations",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_title(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 3:
+            raise serializers.ValidationError("O título deve ter pelo menos 3 caracteres.")
+        return value
+
+    def validate_price_cents(self, value: int) -> int:
+        if value < 0:
+            raise serializers.ValidationError("O preço não pode ser negativo.")
+        return value
+
+    def validate_duration_min(self, value: int) -> int:
+        if not 10 <= value <= 240:
+            raise serializers.ValidationError("A duração deve ficar entre 10 e 240 minutos.")
+        return value
+
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    option_title = serializers.CharField(source="option.title", read_only=True)
+    option_id = serializers.PrimaryKeyRelatedField(
+        source="option", queryset=Option.objects.all()
+    )
+
+    class Meta:
+        model = Registration
+        fields = [
+            "id",
+            "name",
+            "email",
+            "phone",
+            "option_id",
+            "option_title",
+            "scheduled_date",
+            "scheduled_time",
+            "status",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_name(self, value: str) -> str:
+        value = value.strip()
+        if len(value) < 3:
+            raise serializers.ValidationError("Informe seu nome completo (mínimo 3 caracteres).")
+        return value
+
+    def validate_email(self, value: str) -> str:
+        value = value.strip().lower()
+        if "@" not in value or "." not in value.split("@")[-1]:
+            raise serializers.ValidationError("Informe um e-mail válido.")
+        return value
+
+    def validate_option_id(self, value: Option) -> Option:
+        if not value.active:
+            raise serializers.ValidationError("Essa especialidade não está disponível no momento.")
+        return value
+
+    def validate_phone(self, value: str) -> str:
+        value = value.strip()
+        if value and len(value) < 8:
+            raise serializers.ValidationError("Informe um telefone válido.")
+        return value
+
+    def validate_scheduled_date(self, value) -> object:
+        from django.utils import timezone
+
+        if value < timezone.localdate():
+            raise serializers.ValidationError("A data não pode estar no passado.")
+        return value
