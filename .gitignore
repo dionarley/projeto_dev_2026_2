@@ -14,3 +14,10 @@ backend/.env
 # Logs
 logs/
 *.log
+
+# Notas de estudo (não fazem parte do fonte do projeto)
+12-factors.md
+architecture-reliability.md
+develop_soft_qa_frame.txt
+security-ai-code.md
+tdd.md
