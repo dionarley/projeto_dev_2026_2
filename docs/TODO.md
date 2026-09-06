@@ -18,9 +18,11 @@ Checklist operacional deste teste (Mupi Systems — Dev Júnior Full Stack).
 - [x] Testes unitários de serializers, usuário e anti-spam (`scheduling/tests/test_units.py`, `accounts/tests.py`).
 - [x] Scripts de automação: `scripts/check.sh` (gate CI local), `scripts/dev.sh`, `scripts/seed.sh`.
 - [x] Scripts de serviço: `start.sh`, `stop.sh`, `restart.sh`, `status.sh`, `logs.sh` (ciclo de vida da stack com docker compose).
-- [x] `scripts/test.sh` — testes rápidos sem docker (backend + `tsc` + build).
+- [x] `scripts/test.sh` — testes rápidos sem docker (backend + `tsc` + vitest + build + checagem de assets externos no `dist/`).
+- [x] **Segurança** (commit `fd2cb9a`): sanitização (validators/serializers/models), testes de SQLi/XSS, headers+CSP, rate limit, RBAC `admin`×`suporte` + guarda no `/admin/`, banco least-privilege (`vidasaude_app`), `create_support`, CSV-injection no painel.
+- [x] **Correção imagem da médica**: self-host do asset na landing + exceção de CSP só para o Google Fonts, com **testes de regressão** — `Landing.test.tsx` (vitest) e checagem no `test.sh`/`check.sh` de que o `dist/` não referencia imagens externas.
 - [x] **CI** (`.github/workflows/ci.yml`): gate completo + smoke em todo push/PR.
-- [x] Gate completo verde (testes + `tsc` + build + `docker compose config`).
+- [x] Gate completo verde (testes + `tsc` + vitest + build + `docker compose config`).
 - [x] **Smoke de infra** (`scripts/smoke.sh`) no gate: db `healthy` + web no ar + DNS do host `db` + HTTP 200 da página — evita o crash `failed to resolve host 'db'` no boot do `web`.
 - [x] Branches `backend-django` e `docker` mergeadas em `development`.
 - [ ] **PR única** `development` -> `main` criada e aberta.

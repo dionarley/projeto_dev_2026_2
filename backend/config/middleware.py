@@ -13,8 +13,9 @@ from django.urls import Resolver404, resolve
 CSP_POLICY = (
     "default-src 'self'; "
     "script-src 'self'; "
-    "style-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "img-src 'self' data:; "
+    "font-src 'self' https://fonts.gstatic.com data:; "
     "object-src 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "

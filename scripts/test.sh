@@ -15,7 +15,7 @@ if [ -x "$VENV/bin/python" ]; then
   PY=("$VENV/bin/python")
 fi
 
-echo "==> 1/3 Testes do backend (unitários + integração)"
+echo "==> 1/4 Testes do backend (unitários + integração)"
 (
   cd "$ROOT/backend"
   "${PY[@]}" manage.py check
@@ -23,16 +23,28 @@ echo "==> 1/3 Testes do backend (unitários + integração)"
   "${PY[@]}" manage.py test
 )
 
-echo "==> 2/3 TypeScript (tsc --noEmit)"
+echo "==> 2/4 TypeScript (tsc --noEmit)"
 (
   cd "$ROOT/frontend"
   pnpm exec tsc --noEmit
 )
 
-echo "==> 3/3 Build do frontend (Vite)"
+echo "==> 3/4 Testes unitários do frontend (vitest)"
+(
+  cd "$ROOT/frontend"
+  pnpm exec vitest run
+)
+
+echo "==> 4/4 Build do frontend (Vite)"
 (
   cd "$ROOT/frontend"
   pnpm build
+  # Regressão: o bundle final não deve conter URLs externas de imagem — a
+  # imagem da médica é self-hosted e a CSP é img-src 'self' data:.
+  if grep -rq "images\.unsplash\.com" dist; then
+    echo "ERRO: dist/ contém referência externa para Unsplash (imagem não self-hosted)." >&2
+    exit 1
+  fi
 )
 
 echo

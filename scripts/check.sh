@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # Gate de validação (CI local): testes Django + unitários, TypeScript,
-# build do frontend, validade do docker-compose e smoke da stack (db saudável
-# + web no ar + DNS do host "db" + HTTP 200 da página).
+# testes unitários do frontend (vitest), build do frontend (com verificação
+# de não-referenciar assets externos), validade do docker-compose e smoke
+# da stack (db saudável + web no ar + DNS do host "db" + HTTP 200 da página).
 # Falha com exit != 0 se qualquer etapa quebrar.
 #
 # Uso: VENV=/caminho/para/venv scripts/check.sh
@@ -19,7 +20,7 @@ if [ -x "$VENV/bin/python" ]; then
   PY=("$VENV/bin/python")
 fi
 
-echo "==> 1/5 Testes do backend (unitários + integração)"
+echo "==> 1/6 Testes do backend (unitários + integração)"
 (
   cd "$ROOT/backend"
   "${PY[@]}" manage.py check
@@ -27,19 +28,32 @@ echo "==> 1/5 Testes do backend (unitários + integração)"
   "${PY[@]}" manage.py test
 )
 
-echo "==> 2/5 TypeScript (tsc --noEmit)"
+echo "==> 2/6 TypeScript (tsc --noEmit)"
 (
   cd "$ROOT/frontend"
   pnpm exec tsc --noEmit
 )
 
-echo "==> 3/5 Build do frontend (Vite)"
+echo "==> 3/6 Testes unitários do frontend (vitest)"
+(
+  cd "$ROOT/frontend"
+  pnpm exec vitest run
+)
+
+echo "==> 4/6 Build do frontend (Vite) + verificação de integridade"
 (
   cd "$ROOT/frontend"
   pnpm build
+  # Regressão: a imagem da médica é self-hosted (CSP é img-src 'self' data:).
+  # Qualquer referência a um host externo no bundle indica um asset não self-hosted
+  # que seria bloqueado em produção.
+  if grep -rq "images\.unsplash\.com" dist; then
+    echo "ERRO: dist/ contém referência externa para Unsplash (imagem não self-hosted)." >&2
+    exit 1
+  fi
 )
 
-echo "==> 4/5 docker-compose config"
+echo "==> 5/6 docker-compose config"
 if command -v docker >/dev/null 2>&1; then
   (
     cd "$ROOT"
@@ -50,7 +64,7 @@ else
   echo "    docker não encontrado — pulando"
 fi
 
-echo "==> 5/5 Smoke do compose (sobe stack + DNS 'db' + HTTP 200)"
+echo "==> 6/6 Smoke do compose (sobe stack + DNS 'db' + HTTP 200)"
 if command -v docker >/dev/null 2>&1; then
   if [ -n "${SKIP_SMOKE:-}" ]; then
     echo "    SKIP_SMOKE definido — pulando smoke"

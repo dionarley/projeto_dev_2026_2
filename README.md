@@ -69,8 +69,8 @@ Sem `DATABASE_URL` o Django usa um **SQLite local** (`data.sqlite` na raiz); com
 
 | Script | Faz o quê |
 |--------|-----------|
-| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, build do front, `docker compose config` e **smoke da stack**. Falha (exit != 0) se qualquer etapa quebrar. |
-| `scripts/test.sh` | Testes rápidos **sem docker**: backend Django (check + migrações + testes), `tsc --noEmit` e build do front. |
+| `scripts/check.sh` | **Gate de CI local**: testes Django (unitários + integração), `tsc --noEmit`, testes unitários do front (**vitest**), build do front (com verificação de asset self-hosted), `docker compose config` e **smoke da stack**. Falha (exit != 0) se qualquer etapa quebrar. |
+| `scripts/test.sh` | Testes rápidos **sem docker**: backend Django (check + migrações + testes), `tsc --noEmit`, testes unitários do front (**vitest**) e build do front (verifica que `dist/` não referencia imagens externas). |
 | `scripts/smoke.sh` | **Smoke de infra**: sobe a stack via compose e valida Postgres saudável, container web no ar, DNS do host `db` e página em **HTTP 200**. Derruba a stack ao final (`SMOKE_KEEP=1` mantém). |
 | `scripts/start.sh` | Sobe a stack e valida (igual ao smoke), **mantendo os containers no ar**. `REBUILD=1` força `--build`. |
 | `scripts/stop.sh` | Derruba a stack preservando os dados do Postgres. `VOLUMES=1` apaga os volumes (`-v`). |
@@ -142,7 +142,8 @@ conecta como superuser:
 
 ### XSS
 
-- Todo response ganha `Content-Security-Policy` (`default-src 'self'` + `frame-ancestors 'none'`), `Referrer-Policy: same-origin` e `Permissions-Policy` via `config/middleware.py`.
+- Todo response ganha `Content-Security-Policy` (`default-src 'self'` + `frame-ancestors 'none'`), `Referrer-Policy: same-origin` e `Permissions-Policy` via `config/middleware.py`. A CSP só abre exceção para as **fontes do Google Fonts** (`style-src` em `fonts.googleapis.com`, `font-src` em `fonts.gstatic.com`); imagens continuam `img-src 'self' data:`.
+- **Imagens self-hosted**: a foto da médica da landing é um asset do bundle (`frontend/src/assets/doctor-consulta.jpg`) — nunca uma URL remota — pois uma imagem externa (ex.: Unsplash) era bloqueada pela CSP. Um teste React (vitest) e uma checagem do `scripts/test.sh`/`check.sh` (grep no `dist/`) impedem a volta desse bug.
 - O front (React) escapa por padrão; o **export CSV do painel** prefixa com `'` valores que começam com `=`, `+`, `-`, `@`, tab ou CR (evita CSV/Formula injection no Excel/Sheets).
 
 ### MITM (transporte) e DDoS (rate limit)
@@ -160,10 +161,11 @@ conecta como superuser:
 
 ```bash
 scripts/check.sh            # roda tudo; ou só os testes:
-cd backend && python manage.py test
+cd backend && python manage.py test   # backend Django
+cd frontend && pnpm exec vitest run   # frontend (React)
 ```
 
-Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas passadas/opções inativas/duplicados), anti-spam por IP (5 requisições/min no registro; login 30/min por IP + 10/15min por conta), autenticação do painel, mudança de status (confirmar/cancelar), gestão de opções e a camada de segurança (sanitização, SQLi, headers, RBAC suporte×admin). Detalhes em [`docs/TODO.md`](docs/TODO.md).
+Cobrem os fluxos da spec: registro público (salvo como `pendente`, recusa datas passadas/opções inativas/duplicados), anti-spam por IP (5 requisições/min no registro; login 30/min por IP + 10/15min por conta), autenticação do painel, mudança de status (confirmar/cancelar), gestão de opções e a camada de segurança (sanitização, SQLi, headers, RBAC suporte×admin). No front, os testes de componente validam a **imagem da médica self-hosted** na landing (regressão do bug da CSP). Detalhes em [`docs/TODO.md`](docs/TODO.md).
 
 > Credenciais do painel criadas no seed: `admin@vidasaude.com` / `admin123`.
 > Para trocar, defina `ADMIN_EMAIL`, `ADMIN_PASSWORD` no `.env` do `backend/`.

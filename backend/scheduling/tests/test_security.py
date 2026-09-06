@@ -152,11 +152,28 @@ class SqliRegressionTests(APITestCase):
 class SecurityHeadersTests(APITestCase):
     def test_security_headers_present_on_all_responses(self):
         response = self.client.get("/api/options")
-        self.assertEqual(response["Content-Security-Policy"], "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+        self.assertEqual(response["Content-Security-Policy"], "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
         self.assertEqual(response["Referrer-Policy"], "same-origin")
         self.assertIn("Permissions-Policy", response)
         self.assertEqual(response["X-Frame-Options"], "DENY")
         self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+
+    def test_csp_blocks_remote_images_and_scripts(self):
+        # Regressão da "imagem da médica": a política não deve permitir imagens nem
+        # scripts de terceiros (a Landing usa asset local — ver teste no frontend).
+        csp = self.client.get("/api/options")["Content-Security-Policy"]
+        self.assertIn("img-src 'self' data:", csp)
+        self.assertIn("script-src 'self'", csp)
+        self.assertNotIn("images.unsplash.com", csp)
+        self.assertNotIn("*.unsplash.com", csp)
+
+    def test_csp_allows_google_fonts_only(self):
+        # As fontes da marca (Outfit/Inter) vêm do Google Fonts; nada além disso é
+        # carregado de terceiros (style-src/font-src restritos aos hosts de fonte).
+        csp = self.client.get("/api/options")["Content-Security-Policy"]
+        self.assertIn("https://fonts.googleapis.com", csp)
+        self.assertIn("https://fonts.gstatic.com", csp)
+        self.assertNotIn("https://", csp.replace("https://fonts.googleapis.com", "").replace("https://fonts.gstatic.com", ""))
 
 
 class RateLimitLoginTests(SimpleTestCase):

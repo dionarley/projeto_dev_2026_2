@@ -52,7 +52,7 @@ jobs:
         working-directory: frontend
         run: pnpm install --frozen-lockfile
 
-      - name: Gate local (testes, tsc, build, compose config)
+      - name: Gate local (testes, vitest, tsc, build, compose config)
         run: ./scripts/check.sh
         env:
           SKIP_SMOKE: "1"

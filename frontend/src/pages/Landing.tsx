@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, formatBRL, type Option } from "../lib/api";
+import doctorImg from "../assets/doctor-consulta.jpg";
 
 const features = [
   { icon: "🩺", title: "Consultas Online", desc: "Atendimento médico por vídeo, chat ou telefone com especialistas certificados." },
@@ -253,7 +254,7 @@ export default function Landing() {
           <div className="relative">
             <div className="rounded-xl overflow-hidden shadow-2xl" style={{ border: "1px solid #E2E8F0" }}>
               <img
-                src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=640&h=400&fit=crop&auto=format"
+                src={doctorImg}
                 alt="Médica em consulta por vídeo"
                 className="w-full h-64 object-cover"
               />
