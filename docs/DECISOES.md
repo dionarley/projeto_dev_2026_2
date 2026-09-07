@@ -37,7 +37,7 @@ O que fiz com a "deixa" do Express que **não** deixei para trás na migração:
 
 - **Cadastro de pacientes e dashboard do paciente**: o scaffold tinha uma página de registro de conta. Como o tema escolhido entrega o formulário de agendamento, um sistema real de contas de paciente adicionaria escopo sem cobrir nenhum requisito do teste. Cortei as páginas e deixei o login só para administradores.
 - **Notificação por e-mail**: deixei de fora. O fluxo pede feedback visual na interface; notificação real exigiria serviço de e-mail ou Mailhog.
-- **Deploy hospedado**: o README cobre Docker local e o fluxo de dev com dois comandos. Deploy externo pediria conta de host e credenciais.
+- **Deploy hospedado**: o `docs/DESENVOLVIMENTO.md` e o README cobrem Docker local e o fluxo de dev com poucos comandos. Deploy externo pediria conta de host e credenciais.
 - **Celery/workers e fila de e-mail**: descabido para o escopo; o anti-spam e os seeds rodam no próprio processo web.
 
 ## Além do mínimo (o que adicionei e por quê)

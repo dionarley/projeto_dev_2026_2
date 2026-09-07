@@ -1,0 +1,16 @@
+Performance:
+- Detector de N+1.
+- Detector de race condition.
+- Detector de memory leak.
+
+Segurança:
+- Lint de security.
+- Secret scan.
+- Scan de lib exploit (por exemplo, rodar no GitHub Actions).
+- Pinar versão nas suas dependências.
+
+Arquitetura:
+- Conhecer os seus tradeoffs.
+- Confiabilidade (teste de falha etc.).
+- Contingências (o q acontece se teu banco cair etc.).
+
